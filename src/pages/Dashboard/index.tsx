@@ -32,6 +32,7 @@ interface Food {
   id: number;
   name: string;
   description: string;
+  category: number;
   price: number;
   thumbnail_url: string;
   formattedPrice: string;
@@ -53,28 +54,44 @@ const Dashboard: React.FC = () => {
 
   const navigation = useNavigation();
 
-  async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
+  async function handleNavigate(
+    id: number,
+    thumbnail_url: string,
+  ): Promise<void> {
+    setSelectedCategory(undefined);
+    navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      // Load Foods from API
+      const response = await api.get<Food[]>('foods', {
+        params: {
+          category_like: selectedCategory,
+          name_like: searchValue || undefined,
+        },
+      });
+      const responseWithFormattedPrice = response.data.map((food: Food) => ({
+        ...food,
+        formattedPrice: formatValue(food.price),
+      }));
+      setFoods(responseWithFormattedPrice);
     }
-
     loadFoods();
   }, [selectedCategory, searchValue]);
 
   useEffect(() => {
     async function loadCategories(): Promise<void> {
-      // Load categories from API
+      const response = await api.get('categories');
+      setCategories(response.data);
     }
-
     loadCategories();
   }, [selectedCategory, searchValue]);
 
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    setSelectedCategory(prevState => {
+      console.log('Now i know about this', prevState);
+      return prevState === id ? undefined : id;
+    });
   }
 
   return (
@@ -128,7 +145,7 @@ const Dashboard: React.FC = () => {
             {foods.map(food => (
               <Food
                 key={food.id}
-                onPress={() => handleNavigate(food.id)}
+                onPress={() => handleNavigate(food.id, food.thumbnail_url)}
                 activeOpacity={0.6}
                 testID={`food-${food.id}`}
               >
